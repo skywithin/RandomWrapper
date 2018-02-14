@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{BA9811C0-2AF2-4D7E-98A7-BA86EFC4FE96}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>WeightedRandom</RootNamespace>
-    <AssemblyName>WeightedRandom</AssemblyName>
+    <RootNamespace>RandomWrapper</RootNamespace>
+    <AssemblyName>RandomWrapper</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
