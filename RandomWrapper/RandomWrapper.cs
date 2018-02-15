@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
 
 namespace RandomWrapper
 {
     public class RandomWrapper : IRandomWrapper
     {
+        private static readonly Random random = new Random();
+        private static readonly object syncLock = new object();
+
         /// <summary>
         /// Gets a random number within specified range.
         /// </summary>
@@ -16,58 +17,66 @@ namespace RandomWrapper
         /// <returns>Random number.</returns>
         public int GetRandomNumber(int minValue, int maxValue)
         {
-            var seed = GetRandomSeed();
-            return GetRandomNumber(seed, minValue, maxValue);
+            lock (syncLock) // synchronize
+            {
+                return random.Next(minValue, maxValue);
+            }
         }
 
         /// <summary>
         /// Gets a random number within specified range.
         /// </summary>
-        /// <param name="seed">Seed to initialize random instance with.</param>
-        /// <param name="minValue">Min value possibly returned.</param>
-        /// <param name="maxValue">Value less than this will be returned.</param>
+        /// <param name="maxValue">Value between 0 (incl) and less than this will be returned.</param>
         /// <returns>Random number.</returns>
-        public int GetRandomNumber(int seed, int minValue, int maxValue)
+        public int GetRandomNumber(int maxValue)
         {
-            return new Random(seed).Next(minValue, maxValue);
+            return GetRandomNumber(minValue: 0, maxValue: maxValue);
         }
 
-        public T ChooseRandomWeighted<T>(IEnumerable<T> list) where T : IWeighted
+        /// <summary>
+        /// Randomly choose an item from a list taking into account item's weight. 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="items">List of weighted object to choose from.</param>
+        /// <param name="itemsWithZeroWeightCanBeSelected">If false, item with 0 weight will NEVER be selected.</param>
+        /// <returns>Random item from a list taking into account its weight.</returns>
+        public T ChooseRandomWeighted<T>(
+            IEnumerable<T> items, 
+            bool itemsWithZeroWeightCanBeSelected = false) where T : IWeighted
         {
-            if (list == null || list.Any() == false)
+            if (items == null || items.Any() == false)
             {
+                // List is null or empty
                 return default(T);
             }
 
-            var seed = GetRandomSeed();
-            var rand = new Random(seed);
-            int totalweight = list.Sum(c => c.Weight);
-            int choice = rand.Next(totalweight);
+            if (itemsWithZeroWeightCanBeSelected == false)
+            {
+                items = items.Where(p => p.Weight > 0);
+
+                if (items.Any(p => p.Weight > 0) == false)
+                {
+                    return default(T);
+                }
+            }
+
+            int totalWeight = items.Sum(c => c.Weight);
+            int choice = GetRandomNumber(totalWeight);
             int sum = 0;
 
-            foreach (var obj in list)
+            foreach (var item in items)
             {
-                for (int i = sum; i < obj.Weight + sum; i++)
+                for (int i = sum; i < item.Weight + sum; i++)
                 {
                     if (i >= choice)
                     {
-                        return obj;
+                        return item;
                     }
                 }
-                sum += obj.Weight;
+                sum += item.Weight;
             }
 
-            return list.First();
-        }
-
-        private int GetRandomSeed()
-        {
-            var regex = new Regex("[^0-9]");
-            var randomStr = regex.Replace(Guid.NewGuid().ToString(""), "0"); // Replace non-numbers with zeros.
-            var randomNum = long.Parse(randomStr.Substring(0, 17)); // Safeguard against overflow.
-            return (int)randomNum;
+            return items.OrderByDescending(p => p.Weight).First();
         }
     }
-
-    
 }

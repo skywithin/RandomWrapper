@@ -21,11 +21,15 @@ namespace RandomWrapper.UnitTests
 
             int testRuns = 100;
             var stats = new Dictionary<string, int>();
+            var rand = new RandomWrapper();
 
             for (int i = 0; i < testRuns; i++)
             {
-                var selection = new RandomWrapper().ChooseRandomWeighted(listOfObjects);
-                Debug.Print("Random select: {0}", selection);
+                var selection = rand.ChooseRandomWeighted(listOfObjects);
+
+                Assert.IsNotNull(selection);
+
+                Debug.Print("Random select: {0}", selection.Name);
 
                 if (stats.ContainsKey(selection.Name))
                 {
@@ -37,6 +41,11 @@ namespace RandomWrapper.UnitTests
                 }
             }
 
+            foreach (var item in stats)
+            {
+                Debug.Print("{0}: {1}", item.Key, item.Value);
+            }
+
             Assert.IsTrue(stats.ContainsKey(TestConst.Heavy));
             Assert.IsTrue(stats.ContainsKey(TestConst.Medium));
             Assert.IsTrue(stats.ContainsKey(TestConst.Light));
@@ -45,7 +54,32 @@ namespace RandomWrapper.UnitTests
             Assert.IsTrue(stats[TestConst.Heavy] > stats[TestConst.Medium]);
             Assert.IsTrue(stats[TestConst.Medium] > stats[TestConst.Light]);
         }
-        
+
+        [TestMethod]
+        public void ChooseRandomWeighted_WithZeroWeightedItemsAllowed_ReturnsAnObject()
+        {
+            var listOfObjects = new List<WeightedTestObject>
+            {
+                new WeightedTestObject {Name = TestConst.Empty, Weight = TestConst.WeightNone}
+            };
+
+            var selection = new RandomWrapper().ChooseRandomWeighted(listOfObjects, itemsWithZeroWeightCanBeSelected: true);
+
+            Assert.IsNotNull(selection);
+        }
+
+        [TestMethod]
+        public void ChooseRandomWeighted_WithZeroWeightedItemsNotAllowed_ReturnsNull()
+        {
+            var listOfObjects = new List<WeightedTestObject>
+            {
+                new WeightedTestObject {Name = TestConst.Empty, Weight = TestConst.WeightNone}
+            };
+
+            var selection = new RandomWrapper().ChooseRandomWeighted(listOfObjects, itemsWithZeroWeightCanBeSelected: false);
+
+            Assert.IsNull(selection);
+        }
     }
 
     class TestConst
@@ -64,11 +98,7 @@ namespace RandomWrapper.UnitTests
     class WeightedTestObject : IWeighted
     {
         public string Name { get; set; }
-        public int Weight { get; set; }
 
-        public override string ToString()
-        {
-            return Name;
-        }
+        public int Weight { get; set; }
     }
 }
